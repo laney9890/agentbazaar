@@ -12,8 +12,8 @@ const ARC_TESTNET = {
 }
 
 const USDC_ADDRESS = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238'
-const AGENT_REGISTRY_ADDRESS = '0xEe1d9C4F7c0fD2f62A79cB6e3C4d1c63f5EF53ad'
-const JOB_ESCROW_ADDRESS = '0x15A5C5bA687C2B216944DaCF60Bd6609987AE399'
+const AGENT_REGISTRY_ADDRESS = '0xEE1F53A9A58A3c0B25E6Eb1f13B36E6b8b3fF53A'
+const JOB_ESCROW_ADDRESS = '0x0a982E2250F1C66487b88286e14D965025dD89D2'
 
 const categoryBadge = {
   Writing: { bg: '#0d2e1a', color: '#4ade80', border: '#166534' },
@@ -35,6 +35,8 @@ const useCases = [
   { icon: '📰', title: 'Media Companies', desc: 'Generate, translate and optimize content at scale.', tag: 'Writing' },
 ]
 
+const BACKEND_URL = 'https://agentbazaar-production-6aa7.up.railway.app'
+
 export default function App() {
   const [agents, setAgents] = useState([])
   const [selectedAgent, setSelectedAgent] = useState(null)
@@ -51,7 +53,7 @@ export default function App() {
   const [txHash, setTxHash] = useState('')
 
   useEffect(() => {
-    fetch('https://agentbazaar-production-6aa7.up.railway.app/api/agents')
+    fetch(`${BACKEND_URL}/api/agents`)
       .then(r => r.json())
       .then(d => setAgents(d.agents))
       .catch(() => {})
@@ -105,12 +107,10 @@ export default function App() {
       try {
         const usdcAbi = [
           'function transfer(address to, uint256 amount) returns (bool)',
-          'function decimals() view returns (uint8)'
         ]
         const usdc = new ethers.Contract(USDC_ADDRESS, usdcAbi, wallet.signer)
-        const decimals = await usdc.decimals()
-        const amount = ethers.parseUnits(selectedAgent.pricePerJob.toString(), decimals)
-        const tx = await usdc.transfer('0x0a982E2250F1C66487b88286e14D965025dD89D2', amount)
+        const amount = ethers.parseUnits(selectedAgent.pricePerJob.toString(), 6)
+        const tx = await usdc.transfer(JOB_ESCROW_ADDRESS, amount)
         setTxHash(tx.hash)
         await tx.wait()
       } catch (e) {
@@ -119,7 +119,7 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`https://agentbazaar-production-6aa7.up.railway.app/api/agents/${selectedAgent.id}/run`, {
+      const res = await fetch(`${BACKEND_URL}/api/agents/${selectedAgent.id}/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ task })
@@ -144,7 +144,6 @@ export default function App() {
   }
 
   const shortAddress = (addr) => addr ? addr.slice(0, 6) + '...' + addr.slice(-4) : ''
-
   const nav = (key) => { setPage(key); setSelectedAgent(null) }
 
   const navItems = [
@@ -166,7 +165,6 @@ export default function App() {
   return (
     <div style={{ minHeight: '100vh', background: '#0d1117', color: '#e6edf3', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
 
-      {/* Navbar */}
       <nav style={{ background: 'rgba(13,17,23,0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #21262d', padding: '0 40px', height: '60px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => nav('marketplace')}>
           <div style={{ width: '32px', height: '32px', background: 'linear-gradient(135deg, #238636, #1f6feb)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>⚡</div>
@@ -202,7 +200,6 @@ export default function App() {
         </div>
       </nav>
 
-      {/* MARKETPLACE */}
       {page === 'marketplace' && !selectedAgent && (
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '60px 24px' }}>
           <div style={{ textAlign: 'center', marginBottom: '64px' }}>
@@ -218,22 +215,13 @@ export default function App() {
               Hire specialized AI agents. Pay per task with USDC on Arc Network. Trustless, instant, on-chain.
             </p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button onClick={() => nav('marketplace')} style={{ background: '#238636', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontSize: '15px', fontWeight: '600' }}>
-                Browse Agents
-              </button>
-              <button onClick={() => nav('how-it-works')} style={{ background: '#21262d', color: '#e6edf3', border: '1px solid #30363d', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontSize: '15px' }}>
-                How it Works →
-              </button>
+              <button onClick={() => nav('marketplace')} style={{ background: '#238636', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontSize: '15px', fontWeight: '600' }}>Browse Agents</button>
+              <button onClick={() => nav('how-it-works')} style={{ background: '#21262d', color: '#e6edf3', border: '1px solid #30363d', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontSize: '15px' }}>How it Works →</button>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px', marginBottom: '48px' }}>
-            {[
-              { label: 'AI Agents', value: '4+' },
-              { label: 'Jobs Completed', value: '470+' },
-              { label: 'Network', value: 'Arc' },
-              { label: 'Payment', value: 'USDC' },
-            ].map(s => (
+            {[{ label: 'AI Agents', value: '4+' }, { label: 'Jobs Completed', value: '470+' }, { label: 'Network', value: 'Arc' }, { label: 'Payment', value: 'USDC' }].map(s => (
               <div key={s.label} style={{ background: '#161b22', border: '1px solid #21262d', borderRadius: '12px', padding: '20px', textAlign: 'center' }}>
                 <div style={{ fontSize: '28px', fontWeight: '800', marginBottom: '4px' }}>{s.value}</div>
                 <div style={{ fontSize: '13px', color: '#8b949e' }}>{s.label}</div>
@@ -259,9 +247,7 @@ export default function App() {
                   onMouseEnter={e => e.currentTarget.style.borderColor = '#238636'}
                   onMouseLeave={e => e.currentTarget.style.borderColor = '#21262d'}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <div style={{ width: '44px', height: '44px', background: c.bg, border: `1px solid ${c.border}`, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
-                      {categoryIcon[agent.category]}
-                    </div>
+                    <div style={{ width: '44px', height: '44px', background: c.bg, border: `1px solid ${c.border}`, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>{categoryIcon[agent.category]}</div>
                     <span style={{ background: c.bg, color: c.color, border: `1px solid ${c.border}`, padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>{agent.category}</span>
                   </div>
                   <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '8px' }}>{agent.name}</h3>
@@ -277,20 +263,16 @@ export default function App() {
         </div>
       )}
 
-      {/* AGENT DETAIL */}
       {page === 'agent' && selectedAgent && (
         <div style={{ maxWidth: '780px', margin: '0 auto', padding: '40px 24px' }}>
-          <button onClick={goBack}
-            style={{ background: '#21262d', border: '1px solid #30363d', color: '#8b949e', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', marginBottom: '28px' }}>
+          <button onClick={goBack} style={{ background: '#21262d', border: '1px solid #30363d', color: '#8b949e', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', marginBottom: '28px' }}>
             ← Back to {prevPage === 'playground' ? 'Playground' : prevPage === 'how-it-works' ? 'Docs' : 'Marketplace'}
           </button>
 
           {!wallet && (
             <div style={{ background: '#1a1208', border: '1px solid #7c2d12', borderRadius: '12px', padding: '16px 20px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ color: '#fb923c', fontSize: '14px' }}>⚠️ Connect your wallet to pay with USDC on Arc Network</span>
-              <button onClick={connectWallet} style={{ background: '#238636', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
-                Connect Wallet
-              </button>
+              <button onClick={connectWallet} style={{ background: '#238636', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>Connect Wallet</button>
             </div>
           )}
 
@@ -321,8 +303,7 @@ export default function App() {
             {txHash && (
               <div style={{ marginTop: '12px', background: '#0d1f35', border: '1px solid #1e3a5f', borderRadius: '10px', padding: '12px 16px', fontSize: '13px' }}>
                 <span style={{ color: '#60a5fa' }}>🔗 TX: </span>
-                <a href={`https://testnet.arcscan.app/tx/${txHash}`} target="_blank"
-                  style={{ color: '#60a5fa', textDecoration: 'none' }}>
+                <a href={`https://testnet.arcscan.app/tx/${txHash}`} target="_blank" style={{ color: '#60a5fa', textDecoration: 'none' }}>
                   {txHash.slice(0, 20)}...{txHash.slice(-8)}
                 </a>
               </div>
@@ -341,7 +322,6 @@ export default function App() {
         </div>
       )}
 
-      {/* PLAYGROUND */}
       {page === 'playground' && (
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: '60px 24px' }}>
           <div style={{ marginBottom: '40px' }}>
@@ -356,9 +336,7 @@ export default function App() {
                   style={{ background: '#161b22', border: '1px solid #21262d', borderRadius: '12px', padding: '20px', cursor: 'pointer', display: 'flex', gap: '16px', alignItems: 'center', transition: 'border-color 0.15s' }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = '#238636'}
                   onMouseLeave={e => e.currentTarget.style.borderColor = '#21262d'}>
-                  <div style={{ width: '40px', height: '40px', background: c.bg, border: `1px solid ${c.border}`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
-                    {categoryIcon[agent.category]}
-                  </div>
+                  <div style={{ width: '40px', height: '40px', background: c.bg, border: `1px solid ${c.border}`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>{categoryIcon[agent.category]}</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: '600', fontSize: '15px', marginBottom: '4px' }}>{agent.name}</div>
                     <div style={{ color: '#8b949e', fontSize: '13px' }}>{agent.description.substring(0, 50)}...</div>
@@ -390,7 +368,6 @@ export default function App() {
         </div>
       )}
 
-      {/* USE CASES */}
       {page === 'use-cases' && (
         <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '60px 24px' }}>
           <div style={{ marginBottom: '48px' }}>
@@ -410,8 +387,7 @@ export default function App() {
                     <span style={{ background: c.bg, color: c.color, border: `1px solid ${c.border}`, padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>{uc.tag}</span>
                   </div>
                   <p style={{ color: '#8b949e', fontSize: '14px', lineHeight: '1.7', marginBottom: '20px' }}>{uc.desc}</p>
-                  <button onClick={() => nav('marketplace')}
-                    style={{ background: 'none', border: '1px solid #30363d', color: '#8b949e', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', width: '100%' }}>
+                  <button onClick={() => nav('marketplace')} style={{ background: 'none', border: '1px solid #30363d', color: '#8b949e', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', width: '100%' }}>
                     Try an Agent →
                   </button>
                 </div>
@@ -421,7 +397,6 @@ export default function App() {
         </div>
       )}
 
-      {/* HOW IT WORKS */}
       {page === 'how-it-works' && (
         <div style={{ display: 'flex', maxWidth: '1100px', margin: '0 auto', padding: '48px 24px', gap: '40px' }}>
           <div style={{ width: '220px', flexShrink: 0 }}>
@@ -508,16 +483,7 @@ export default function App() {
                 <h1 style={{ fontSize: '32px', fontWeight: '800', letterSpacing: '-1px', marginBottom: '8px' }}>Escrow System</h1>
                 <p style={{ color: '#8b949e', marginBottom: '32px' }}>Our smart contract protects both clients and agents.</p>
                 <div style={{ background: '#161b22', border: '1px solid #21262d', borderRadius: '12px', padding: '24px' }}>
-                  <pre style={{ color: '#e6edf3', fontSize: '13px', lineHeight: '1.8', overflowX: 'auto', margin: 0 }}>{`// JobEscrow.sol — deployed on Arc Testnet
-
-function createJob(agentId, title, description, payment) {
-  usdc.transferFrom(client, address(this), payment);
-  jobs[jobCount] = Job({ client, agentId, payment });
-}
-
-function completeJob(jobId, result, agentOwner) {
-  usdc.transfer(agentOwner, payment);
-}`}</pre>
+                  <pre style={{ color: '#e6edf3', fontSize: '13px', lineHeight: '1.8', overflowX: 'auto', margin: 0 }}>{`// JobEscrow.sol — deployed on Arc Testnet\n\nfunction createJob(agentId, title, description, payment) {\n  usdc.transferFrom(client, address(this), payment);\n  jobs[jobCount] = Job({ client, agentId, payment });\n}\n\nfunction completeJob(jobId, result, agentOwner) {\n  usdc.transfer(agentOwner, payment);\n}`}</pre>
                 </div>
               </div>
             )}
@@ -546,7 +512,6 @@ function completeJob(jobId, result, agentOwner) {
         </div>
       )}
 
-      {/* DASHBOARD */}
       {page === 'dashboard' && (
         <div style={{ maxWidth: '960px', margin: '0 auto', padding: '60px 24px' }}>
           <h2 style={{ fontSize: '32px', fontWeight: '800', letterSpacing: '-1px', marginBottom: '6px' }}>Dashboard</h2>
@@ -555,9 +520,7 @@ function completeJob(jobId, result, agentOwner) {
             <div style={{ textAlign: 'center', padding: '80px 0' }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
               <p style={{ color: '#8b949e', marginBottom: '20px' }}>No jobs yet. Hire your first AI agent!</p>
-              <button onClick={() => nav('marketplace')} style={{ background: '#238636', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
-                Browse Agents
-              </button>
+              <button onClick={() => nav('marketplace')} style={{ background: '#238636', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Browse Agents</button>
             </div>
           ) : (
             <>
@@ -585,8 +548,7 @@ function completeJob(jobId, result, agentOwner) {
                     </div>
                     <p style={{ color: '#8b949e', fontSize: '13px', marginBottom: '4px' }}>{job.task}</p>
                     {job.txHash && (
-                      <a href={`https://testnet.arcscan.app/tx/${job.txHash}`} target="_blank"
-                        style={{ color: '#60a5fa', fontSize: '12px', textDecoration: 'none' }}>
+                      <a href={`https://testnet.arcscan.app/tx/${job.txHash}`} target="_blank" style={{ color: '#60a5fa', fontSize: '12px', textDecoration: 'none' }}>
                         🔗 View on Arc Explorer
                       </a>
                     )}
