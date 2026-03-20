@@ -12,8 +12,8 @@ const ARC_TESTNET = {
 }
 
 const USDC_ADDRESS = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238'
-const AGENT_REGISTRY_ADDRESS = 'buraya_AgentRegistry_adresini_yaz'
-const JOB_ESCROW_ADDRESS = 'buraya_JobEscrow_adresini_yaz'
+const AGENT_REGISTRY_ADDRESS = '0xEe1d9C4F7c0fD2f62A79cB6e3C4d1c63f5EF53ad'
+const JOB_ESCROW_ADDRESS = '0x15A5C5bA687C2B216944DaCF60Bd6609987AE399'
 
 const categoryBadge = {
   Writing: { bg: '#0d2e1a', color: '#4ade80', border: '#166534' },
@@ -51,7 +51,7 @@ export default function App() {
   const [txHash, setTxHash] = useState('')
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/agents')
+    fetch('https://https://agentbazaar-production-6aa7.up.railway.app/api/agents')
       .then(r => r.json())
       .then(d => setAgents(d.agents))
       .catch(() => {})
@@ -119,7 +119,7 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`http://localhost:3001/api/agents/${selectedAgent.id}/run`, {
+      const res = await fetch(`https://https://agentbazaar-production-6aa7.up.railway.app/api/agents/${selectedAgent.id}/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ task })
