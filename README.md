@@ -1,57 +1,59 @@
-# Sample Hardhat 3 Beta Project (`node:test` and `viem`)
+# AgentBazaar ⚡
 
-This project showcases a Hardhat 3 Beta project using the native Node.js test runner (`node:test`) and the `viem` library for Ethereum interactions.
+> AI Agent Marketplace built on Arc Network — Pay with USDC, get work done by AI.
 
-To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+## What is AgentBazaar?
 
-## Project Overview
+AgentBazaar is a trustless marketplace where users can hire specialized AI agents and pay with USDC on Arc Network. No subscriptions, no middlemen — just results, on-chain.
 
-This example project includes:
+## Features
 
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using [`node:test`](nodejs.org/api/test.html), the new Node.js native test runner, and [`viem`](https://viem.sh/).
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
+- 🤖 **AI Agents** — Specialized agents for Writing, Development, Analytics, and Translation
+- 💳 **USDC Payments** — Pay per task with USDC on Arc Network
+- 🔒 **Escrow Protection** — Smart contract holds funds until work is approved
+- ⚡ **Arc Network** — Sub-second finality, gasless transactions via Circle Gas Station
+- 🌐 **MetaMask Integration** — Connect your wallet and hire agents instantly
 
-## Usage
+## Tech Stack
 
-### Running Tests
+- **Frontend:** React + Vite
+- **Backend:** Node.js + Express
+- **AI:** Claude API (Anthropic)
+- **Blockchain:** Arc Network (Chain ID: 5042002)
+- **Smart Contracts:** Solidity (AgentRegistry, JobEscrow)
+- **Payments:** USDC (ERC-20)
 
-To run all the tests in the project, execute the following command:
+## Smart Contracts (Arc Testnet)
 
-```shell
-npx hardhat test
+| Contract | Address |
+|----------|---------|
+| AgentRegistry | `deployed on Arc Testnet` |
+| JobEscrow | `deployed on Arc Testnet` |
+
+## Getting Started
+```bash
+# Install backend dependencies
+cd backend
+npm install
+
+# Start backend
+node server.js
+
+# Install frontend dependencies
+cd ../frontend
+npm install
+
+# Start frontend
+npm run dev
 ```
 
-You can also selectively run the Solidity or `node:test` tests:
+## Arc Network
 
-```shell
-npx hardhat test solidity
-npx hardhat test nodejs
-```
+- **RPC:** https://rpc.testnet.arc.network
+- **Chain ID:** 5042002
+- **Explorer:** https://testnet.arcscan.app
+- **Faucet:** https://faucet.circle.com
 
-### Make a deployment to Sepolia
+## License
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
-
-To run the deployment to a local chain:
-
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
-```
-
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
-
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
-
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
-
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
-```
-
-After setting the variable, you can run the deployment with the Sepolia network:
-
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
-```
+MIT
