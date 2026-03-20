@@ -4,7 +4,7 @@ import { ethers } from 'ethers'
 const CATEGORIES = ['All', 'Writing', 'Development', 'Analytics', 'Translation']
 
 const ARC_TESTNET = {
-  chainId: '0x4cb732',
+  chainId: '0x4cef52',
   chainName: 'Arc Testnet',
   nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
   rpcUrls: ['https://rpc.testnet.arc.network'],
@@ -103,20 +103,7 @@ export default function App() {
     setResult('')
     setTxHash('')
 
-    if (wallet) {
-      try {
-        const usdcAbi = [
-          'function transfer(address to, uint256 amount) returns (bool)',
-        ]
-        const usdc = new ethers.Contract(USDC_ADDRESS, usdcAbi, wallet.signer)
-        const amount = ethers.parseUnits(selectedAgent.pricePerJob.toString(), 6)
-        const tx = await usdc.transfer(JOB_ESCROW_ADDRESS, amount)
-        setTxHash(tx.hash)
-        await tx.wait()
-      } catch (e) {
-        console.log('TX error:', e.message)
-      }
-    }
+
 
     try {
       const res = await fetch(`${BACKEND_URL}/api/agents/${selectedAgent.id}/run`, {
