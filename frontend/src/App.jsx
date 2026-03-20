@@ -4,7 +4,7 @@ import { ethers } from 'ethers'
 const CATEGORIES = ['All', 'Writing', 'Development', 'Analytics', 'Translation']
 
 const ARC_TESTNET = {
-  chainId: '0x4CE672',
+  chainId: '0x4CE912',
   chainName: 'Arc Testnet',
   nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
   rpcUrls: ['https://rpc.testnet.arc.network'],
