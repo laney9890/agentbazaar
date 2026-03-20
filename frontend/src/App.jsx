@@ -51,7 +51,7 @@ export default function App() {
   const [txHash, setTxHash] = useState('')
 
   useEffect(() => {
-    fetch('https://https://agentbazaar-production-6aa7.up.railway.app/api/agents')
+    fetch('https://agentbazaar-production-6aa7.up.railway.app/api/agents')
       .then(r => r.json())
       .then(d => setAgents(d.agents))
       .catch(() => {})
