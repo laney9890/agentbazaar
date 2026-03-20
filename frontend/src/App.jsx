@@ -119,7 +119,7 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`https://https://agentbazaar-production-6aa7.up.railway.app/api/agents/${selectedAgent.id}/run`, {
+      const res = await fetch(`https://agentbazaar-production-6aa7.up.railway.app/api/agents/${selectedAgent.id}/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ task })
