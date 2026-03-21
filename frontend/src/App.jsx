@@ -3,7 +3,7 @@ import { ethers } from 'ethers'
 
 const BACKEND_URL = 'https://agentbazaar-production-6aa7.up.railway.app'
 const USDC_ADDRESS = '0x3600000000000000000000000000000000000000'
-const JOB_ESCROW_ADDRESS = '0x15A5C5bA687C2B216944DaCF60Bd6609987AE399'
+const JOB_ESCROW_ADDRESS = '0x4Fc516EDdE4c8C7cebE10B160eCbBB3660e04ab6'
 
 const ARC_TESTNET = {
   chainId: '0x4cef52',
