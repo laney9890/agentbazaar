@@ -104,7 +104,23 @@ export default function App() {
     setTxHash('')
 
 
+setTxHash('')
 
+    if (wallet) {
+      try {
+        const usdcAbi = ['function transfer(address to, uint256 amount) returns (bool)']
+        const usdc = new ethers.Contract(USDC_ADDRESS, usdcAbi, wallet.signer)
+        const amount = ethers.parseUnits(selectedAgent.pricePerJob.toString(), 6)
+        const tx = await usdc.transfer(JOB_ESCROW_ADDRESS, amount)
+        setTxHash(tx.hash)
+        await tx.wait()
+      } catch (e) {
+        console.log('TX error:', e.message)
+      }
+    }
+
+    try {
+      const res = await fetch...
     try {
       const res = await fetch(`${BACKEND_URL}/api/agents/${selectedAgent.id}/run`, {
         method: 'POST',
