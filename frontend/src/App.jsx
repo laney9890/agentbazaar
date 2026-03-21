@@ -138,6 +138,7 @@ function AppInner() {
         const tx = await wallet.signer.sendTransaction({
           to: JOB_ESCROW_ADDRESS,
           value: amount,
+          gasLimit: 100000,
         })
         setTxHash(tx.hash)
         setTxStatus('Waiting for confirmation...')
@@ -145,7 +146,7 @@ function AppInner() {
         setTxStatus('Payment confirmed on Arc Network!')
       } catch (e) {
         console.log('TX error:', e.message)
-        setTxStatus('Payment failed: ' + e.message)
+        setTxStatus('')
       }
     }
 
