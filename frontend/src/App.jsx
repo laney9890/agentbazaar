@@ -4,7 +4,12 @@ import { ethers } from 'ethers'
 const BACKEND_URL = 'https://agentbazaar-production-6aa7.up.railway.app'
 const USDC_ADDRESS = '0x3600000000000000000000000000000000000000'
 const JOB_ESCROW_ADDRESS = '0x4Fc516EDdE4c8C7cebE10B160eCbBB3660e04ab6'
+const AGENT_OWNER_ADDRESS = '0x337B77f8E094e963944BcFAf6B7427326fB29B83'
 
+const JOB_ESCROW_ABI = [
+  'function completeJob(uint256 _jobId, string memory _result, address _agentOwner) external',
+  'function jobCount() view returns (uint256)',
+]
 const ARC_TESTNET = {
   chainId: '0x4cef52',
   chainName: 'Arc Testnet',
@@ -128,7 +133,19 @@ export default function App() {
     setTxHash('')
     setTxStatus('')
   }
-
+const releasePayment = async (job) => {
+    if (!wallet) return
+    try {
+      const escrow = new ethers.Contract(JOB_ESCROW_ADDRESS, JOB_ESCROW_ABI, wallet.signer)
+      const jobCount = await escrow.jobCount()
+      const tx = await escrow.completeJob(jobCount, job.result, AGENT_OWNER_ADDRESS)
+      await tx.wait()
+      setJobs(prev => prev.map(j => j.id === job.id ? { ...j, released: true } : j))
+      alert('Payment released! 🎉')
+    } catch (e) {
+      alert('Error: ' + e.message)
+    }
+  }
   const goBack = () => {
     setSelectedAgent(null)
     setResult('')
@@ -603,6 +620,15 @@ export default function App() {
                     {job.txHash && (
                       <a href={`https://testnet.arcscan.app/tx/${job.txHash}`} target="_blank" style={{ color: '#60a5fa', fontSize: '12px', textDecoration: 'none' }}>
                         🔗 View on Arc Explorer
+                        {wallet && job.status === 'Completed' && !job.released && (
+  <button onClick={() => releasePayment(job)}
+    style={{ marginTop: '8px', background: '#238636', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'block' }}>
+    ✅ Approve & Release Payment
+  </button>
+)}
+{job.released && (
+  <div style={{ marginTop: '8px', color: '#4ade80', fontSize: '12px' }}>✅ Payment released to agent</div>
+)}
                       </a>
                     )}
                     <p style={{ color: '#6e7681', fontSize: '12px', marginTop: '4px' }}>{job.createdAt}</p>
