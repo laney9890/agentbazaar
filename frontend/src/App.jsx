@@ -3,7 +3,6 @@ import { ethers } from 'ethers'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 
 const BACKEND_URL = 'https://agentbazaar-production-6aa7.up.railway.app'
-const USDC_ADDRESS = '0x3600000000000000000000000000000000000000'
 const JOB_ESCROW_ADDRESS = '0xC8019a5512B67A8B31Ce1a67BD2b3007Ec359D80'
 const AGENT_OWNER_ADDRESS = '0x337B77f8E094e963944BcFAf6B7427326fB29B83'
 
@@ -20,7 +19,6 @@ const ESCROW_ABI = [
   'function completeJob(uint256 _jobId, string memory _result, address _agentOwner) external',
   'function cancelJob(uint256 _jobId) external',
   'function jobCount() view returns (uint256)',
-  'function getJob(uint256 _jobId) external view returns (tuple(uint256 id, address client, uint256 agentId, string title, string description, uint256 payment, uint8 status, string result))',
 ]
 
 const CATEGORIES = ['All', 'Writing', 'Development', 'Analytics', 'Translation']
@@ -32,27 +30,34 @@ const CAT = {
   Translation: { bg: '#2d1a08', color: '#fb923c', border: '#7c2d12', icon: '🌐' },
 }
 
+const st = {
+  page: { minHeight: '100vh', background: '#0d1117', color: '#e6edf3', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
+  nav: { background: 'rgba(13,17,23,0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #21262d', padding: '0 40px', height: '60px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100 },
+  card: { background: '#161b22', border: '1px solid #21262d', borderRadius: '14px', padding: '24px', cursor: 'pointer', transition: 'border-color 0.15s' },
+  btn: (color = '#238636') => ({ background: color, color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }),
+  input: { width: '100%', minHeight: '130px', background: '#0d1117', border: '1px solid #30363d', borderRadius: '10px', padding: '14px', color: '#e6edf3', fontSize: '14px', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit', outline: 'none' },
+}
+
 function useWallet() {
   const [wallet, setWallet] = useState(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (window.ethereum) {
-      window.ethereum.request({ method: 'eth_accounts' }).then(async accounts => {
-        if (accounts.length > 0) {
-          try {
-            const provider = new ethers.BrowserProvider(window.ethereum)
-            const network = await provider.getNetwork()
-            if (network.chainId === BigInt(5042002)) {
-              const signer = await provider.getSigner()
-              setWallet({ address: accounts[0], signer, provider })
-            }
-          } catch (e) {}
-        }
-      })
-      window.ethereum.on('accountsChanged', () => setWallet(null))
-      window.ethereum.on('chainChanged', () => window.location.reload())
-    }
+    if (!window.ethereum) return
+    window.ethereum.request({ method: 'eth_accounts' }).then(async accounts => {
+      if (accounts.length > 0) {
+        try {
+          const provider = new ethers.BrowserProvider(window.ethereum)
+          const network = await provider.getNetwork()
+          if (network.chainId === BigInt(5042002)) {
+            const signer = await provider.getSigner()
+            setWallet({ address: accounts[0], signer, provider })
+          }
+        } catch (e) {}
+      }
+    })
+    window.ethereum.on('accountsChanged', () => setWallet(null))
+    window.ethereum.on('chainChanged', () => window.location.reload())
   }, [])
 
   const connect = async () => {
@@ -77,7 +82,6 @@ function useWallet() {
 
   const disconnect = () => setWallet(null)
   const short = (a) => a ? a.slice(0, 6) + '...' + a.slice(-4) : ''
-
   return { wallet, loading, connect, disconnect, short }
 }
 
@@ -99,14 +103,6 @@ function useJobs() {
   }
 
   return { jobs, addJob, updateJob }
-}
-
-const st = {
-  page: { minHeight: '100vh', background: '#0d1117', color: '#e6edf3', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
-  nav: { background: 'rgba(13,17,23,0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #21262d', padding: '0 40px', height: '60px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100 },
-  card: { background: '#161b22', border: '1px solid #21262d', borderRadius: '14px', padding: '24px', cursor: 'pointer', transition: 'border-color 0.15s' },
-  btn: (color = '#238636') => ({ background: color, color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }),
-  input: { width: '100%', minHeight: '130px', background: '#0d1117', border: '1px solid #30363d', borderRadius: '10px', padding: '14px', color: '#e6edf3', fontSize: '14px', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit', outline: 'none' },
 }
 
 function Navbar({ wallet, walletLoading, connect, disconnect, short }) {
@@ -231,10 +227,8 @@ function AgentPage({ agents, wallet, connect, addJob }) {
   const [loading, setLoading] = useState(false)
   const [txHash, setTxHash] = useState('')
   const [txStatus, setTxStatus] = useState('')
-  const [jobId, setJobId] = useState(null)
 
   if (!agent) return <Navigate to="/" />
-
   const c = CAT[agent.category] || CAT.Writing
 
   const run = async () => {
@@ -253,9 +247,9 @@ function AgentPage({ agents, wallet, connect, addJob }) {
         const tx = await escrow.createJob(agent.id, agent.name, task, { value: amount, gasLimit: 300000 })
         setTxHash(tx.hash)
         setTxStatus('Confirming payment...')
-        const receipt = await tx.wait()
-        onChainJobId = receipt?.logs?.[0] ? Number(await escrow.jobCount()) : null
-        setJobId(onChainJobId)
+        await tx.wait()
+        const escrow2 = new ethers.Contract(JOB_ESCROW_ADDRESS, ESCROW_ABI, wallet.signer)
+        onChainJobId = Number(await escrow2.jobCount())
         setTxStatus('Payment confirmed on Arc Network!')
       } catch (e) {
         console.log('TX error:', e.message)
@@ -272,9 +266,7 @@ function AgentPage({ agents, wallet, connect, addJob }) {
       const data = await res.json()
       const resultText = data.result || 'Error from agent'
       setResult(resultText)
-
       const resultHash = btoa(unescape(encodeURIComponent(resultText.slice(0, 100))))
-
       addJob({
         id: Date.now(),
         agentId: agent.id,
@@ -378,40 +370,36 @@ function Dashboard({ jobs, updateJob, wallet, connect }) {
   }
 
   const rejectJob = async (job) => {
-  if (!wallet) return alert('Connect your wallet first!')
-  
-  try {
-    // Step 1: Ask Claude to evaluate
-    const evalRes = await fetch(`${BACKEND_URL}/api/dispute`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: job.task, result: job.result })
-    })
-    const evalData = await evalRes.json()
-    
-    if (evalData.decision === 'approve') {
-  alert(`🤖 AI Evaluation: Agent completed the task properly.\n\nReason: ${evalData.reason}\n\nPayment will be released to the agent.`)
-  const escrow = new ethers.Contract(JOB_ESCROW_ADDRESS, ESCROW_ABI, wallet.signer)
-  const tx = await escrow.completeJob(job.onChainJobId, job.resultHash, AGENT_OWNER_ADDRESS)
-  await tx.wait()
-  updateJob(job.id, { released: true, status: 'Approved' })
-  return
-}
-    } else {
-      // Claude says agent did poor work
-      window.alert(`🤖 AI Evaluation: Agent did not complete the task properly.\n\nReason: ${evalData.reason}\n\nYour refund will be processed.`)
-    }
+    if (!wallet) return alert('Connect your wallet first!')
+    try {
+      // Step 1: Ask Claude to evaluate
+      const evalRes = await fetch(`${BACKEND_URL}/api/dispute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task: job.task, result: job.result })
+      })
+      const evalData = await evalRes.json()
 
-    // Step 2: Cancel on blockchain
-    const escrow = new ethers.Contract(JOB_ESCROW_ADDRESS, ESCROW_ABI, wallet.signer)
-    const tx = await escrow.cancelJob(job.onChainJobId)
-    await tx.wait()
-    updateJob(job.id, { rejected: true, status: 'Rejected' })
-    alert('❌ Job rejected. Payment refunded.')
-  } catch (e) {
-    alert('Error: ' + e.message)
+      if (evalData.decision === 'approve') {
+        // Claude says agent did good work — force pay agent
+        alert(`🤖 AI Evaluation: Agent completed the task properly.\n\nReason: ${evalData.reason}\n\nPayment will be released to the agent automatically.`)
+        const escrow = new ethers.Contract(JOB_ESCROW_ADDRESS, ESCROW_ABI, wallet.signer)
+        const tx = await escrow.completeJob(job.onChainJobId, job.resultHash, AGENT_OWNER_ADDRESS)
+        await tx.wait()
+        updateJob(job.id, { released: true, status: 'Approved' })
+      } else {
+        // Claude says agent did poor work — refund user
+        alert(`🤖 AI Evaluation: Agent did not complete the task properly.\n\nReason: ${evalData.reason}\n\nYour refund will be processed.`)
+        const escrow = new ethers.Contract(JOB_ESCROW_ADDRESS, ESCROW_ABI, wallet.signer)
+        const tx = await escrow.cancelJob(job.onChainJobId)
+        await tx.wait()
+        updateJob(job.id, { rejected: true, status: 'Rejected' })
+        alert('❌ Job rejected. Payment refunded.')
+      }
+    } catch (e) {
+      alert('Error: ' + e.message)
+    }
   }
-}
 
   return (
     <div style={{ maxWidth: '960px', margin: '0 auto', padding: '60px 24px' }}>
@@ -478,7 +466,7 @@ function Dashboard({ jobs, updateJob, wallet, connect }) {
                     </button>
                     <button onClick={() => rejectJob(job)}
                       style={{ background: '#7f1d1d', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
-                      ❌ Reject & Refund
+                      ❌ Reject & AI Evaluation
                     </button>
                   </div>
                 )}
@@ -522,6 +510,23 @@ function Playground({ agents }) {
             </div>
           )
         })}
+      </div>
+      <div style={{ background: '#161b22', border: '1px solid #21262d', borderRadius: '14px', padding: '28px' }}>
+        <h3 style={{ marginBottom: '12px', fontSize: '16px', fontWeight: '600' }}>Sample Tasks</h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {[
+            { text: 'Write a tweet about blockchain', agentIdx: 0 },
+            { text: 'Explain what is USDC', agentIdx: 0 },
+            { text: 'Review this code: console.log("hello")', agentIdx: 1 },
+            { text: 'Translate "Hello World" to Spanish', agentIdx: 3 },
+          ].map(sample => (
+            <button key={sample.text}
+              onClick={() => navigate('/agent/' + (agents[sample.agentIdx]?.id || 1))}
+              style={{ background: '#21262d', border: '1px solid #30363d', color: '#8b949e', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>
+              {sample.text}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -592,7 +597,7 @@ function HowItWorks() {
               { step: '02', title: 'Describe Task', desc: 'Write what you need in plain English. No technical knowledge required.', color: '#1f6feb', go: () => navigate('/') },
               { step: '03', title: 'Pay with USDC', desc: 'Payment locked in smart contract on Arc Network.', color: '#8957e5', go: () => setSection('payments') },
               { step: '04', title: 'Agent Works', desc: 'AI agent processes your task. Result hash stored on-chain as proof.', color: '#f78166', go: () => navigate('/playground') },
-              { step: '05', title: 'Approve or Reject', desc: 'Review result. Approve to pay agent, reject to get refund.', color: '#4ade80', go: () => navigate('/dashboard') },
+              { step: '05', title: 'Approve or AI Dispute', desc: 'Approve to pay agent. Reject triggers AI evaluation — if agent did good work, payment goes to agent anyway.', color: '#4ade80', go: () => navigate('/dashboard') },
             ].map(item => (
               <div key={item.step} onClick={item.go}
                 style={{ display: 'flex', gap: '20px', background: '#161b22', border: '1px solid #21262d', borderRadius: '12px', padding: '24px', marginBottom: '12px', cursor: 'pointer' }}
@@ -612,9 +617,9 @@ function HowItWorks() {
             <h1 style={{ fontSize: '32px', fontWeight: '800', marginBottom: '32px' }}>Payments</h1>
             {[
               { title: 'USDC Native Token', desc: 'Arc Network uses USDC as native token — no ETH needed.' },
-              { title: 'Escrow Protection', desc: 'Funds locked until approved or rejected by client.' },
-              { title: 'On-Chain Proof', desc: 'Result hash stored on blockchain — cannot be disputed.' },
-              { title: 'Approve or Reject', desc: 'Approve to pay agent, reject to get your money back.' },
+              { title: 'Escrow Protection', desc: 'Funds locked until approved or AI evaluation completes.' },
+              { title: 'On-Chain Proof', desc: 'Result hash stored on blockchain — cannot be disputed unfairly.' },
+              { title: 'AI Dispute Resolution', desc: 'If you reject, Claude AI evaluates the work. If agent did good work, payment goes to agent regardless.' },
             ].map(item => (
               <div key={item.title} style={{ background: '#161b22', border: '1px solid #21262d', borderRadius: '12px', padding: '24px', marginBottom: '12px' }}>
                 <div style={{ fontWeight: '700', fontSize: '16px', marginBottom: '8px', color: '#4ade80' }}>✓ {item.title}</div>
@@ -669,12 +674,10 @@ export default function App() {
       .catch(() => {})
   }, [])
 
-  const navProps = { wallet, walletLoading, connect, disconnect, short }
-
   return (
     <BrowserRouter>
       <div style={st.page}>
-        <Navbar {...navProps} />
+        <Navbar wallet={wallet} walletLoading={walletLoading} connect={connect} disconnect={disconnect} short={short} />
         <Routes>
           <Route path="/" element={<Marketplace agents={agents} filter={filter} setFilter={setFilter} />} />
           <Route path="/agent/:id" element={<AgentPage agents={agents} wallet={wallet} connect={connect} addJob={addJob} />} />
