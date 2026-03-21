@@ -149,18 +149,13 @@ export default function App() {
     if (wallet) {
       try {
         setTxStatus('Waiting for MetaMask approval...')
-        const usdc = new ethers.Contract(USDC_ADDRESS, USDC_ABI, wallet.signer)
         const amount = ethers.parseUnits(selectedAgent.pricePerJob.toString(), 6)
-        
-        // Step 1: Approve
-        setTxStatus('Step 1/2: Approving USDC spend...')
-        const approveTx = await usdc.approve(JOB_ESCROW_ADDRESS, amount)
-        await approveTx.wait()
-        
-        // Step 2: Transfer
-        setTxStatus('Step 2/2: Sending payment to escrow...')
-        const tx = await usdc.transfer(JOB_ESCROW_ADDRESS, amount)
+        const tx = await wallet.signer.sendTransaction({
+          to: JOB_ESCROW_ADDRESS,
+          value: amount,
+        })
         setTxHash(tx.hash)
+        setTxStatus('Waiting for confirmation...')
         await tx.wait()
         setTxStatus('Payment confirmed on Arc Network!')
       } catch (e) {
