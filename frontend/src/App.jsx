@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { ethers } from 'ethers'
 
-const CATEGORIES = ['All', 'Writing', 'Development', 'Analytics', 'Translation']
+const BACKEND_URL = 'https://agentbazaar-production-6aa7.up.railway.app'
+const USDC_ADDRESS = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238'
+const JOB_ESCROW_ADDRESS = '0x15A5C5bA687C2B216944DaCF60Bd6609987AE399'
 
 const ARC_TESTNET = {
   chainId: '0x4cef52',
@@ -11,9 +13,13 @@ const ARC_TESTNET = {
   blockExplorerUrls: ['https://testnet.arcscan.app'],
 }
 
-const USDC_ADDRESS = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238'
-const AGENT_REGISTRY_ADDRESS = '0xEE1F53A9A58A3c0B25E6Eb1f13B36E6b8b3fF53A'
-const JOB_ESCROW_ADDRESS = '0x0a982E2250F1C66487b88286e14D965025dD89D2'
+const USDC_ABI = [
+  'function transfer(address to, uint256 amount) returns (bool)',
+  'function approve(address spender, uint256 amount) returns (bool)',
+  'function balanceOf(address account) view returns (uint256)',
+]
+
+const CATEGORIES = ['All', 'Writing', 'Development', 'Analytics', 'Translation']
 
 const categoryBadge = {
   Writing: { bg: '#0d2e1a', color: '#4ade80', border: '#166534' },
@@ -35,8 +41,6 @@ const useCases = [
   { icon: '📰', title: 'Media Companies', desc: 'Generate, translate and optimize content at scale.', tag: 'Writing' },
 ]
 
-const BACKEND_URL = 'https://agentbazaar-production-6aa7.up.railway.app'
-
 export default function App() {
   const [agents, setAgents] = useState([])
   const [selectedAgent, setSelectedAgent] = useState(null)
@@ -51,24 +55,56 @@ export default function App() {
   const [wallet, setWallet] = useState(null)
   const [walletLoading, setWalletLoading] = useState(false)
   const [txHash, setTxHash] = useState('')
+  const [txStatus, setTxStatus] = useState('')
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/agents`)
       .then(r => r.json())
       .then(d => setAgents(d.agents))
       .catch(() => {})
+
+    // Auto reconnect wallet if previously connected
+    if (window.ethereum) {
+      window.ethereum.request({ method: 'eth_accounts' }).then(accounts => {
+        if (accounts.length > 0) {
+          reconnectWallet()
+        }
+      })
+    }
   }, [])
+
+  const reconnectWallet = async () => {
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum)
+      const network = await provider.getNetwork()
+      if (network.chainId === BigInt(5042002)) {
+        const signer = await provider.getSigner()
+        const address = await signer.getAddress()
+        setWallet({ address, signer, provider })
+      }
+    } catch (e) {}
+  }
 
   const connectWallet = async () => {
     if (!window.ethereum) return alert('Please install MetaMask!')
     setWalletLoading(true)
     try {
       await window.ethereum.request({ method: 'eth_requestAccounts' })
+      
       try {
-        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: ARC_TESTNET.chainId }] })
-      } catch {
-        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [ARC_TESTNET] })
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: ARC_TESTNET.chainId }],
+        })
+      } catch (switchError) {
+        if (switchError.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [ARC_TESTNET],
+          })
+        }
       }
+
       const provider = new ethers.BrowserProvider(window.ethereum)
       const signer = await provider.getSigner()
       const address = await signer.getAddress()
@@ -87,6 +123,10 @@ export default function App() {
     setPrevPage(from)
     setSelectedAgent(agent)
     setPage('agent')
+    setResult('')
+    setTask('')
+    setTxHash('')
+    setTxStatus('')
   }
 
   const goBack = () => {
@@ -94,6 +134,7 @@ export default function App() {
     setResult('')
     setTask('')
     setTxHash('')
+    setTxStatus('')
     setPage(prevPage)
   }
 
@@ -102,25 +143,26 @@ export default function App() {
     setLoading(true)
     setResult('')
     setTxHash('')
+    setTxStatus('')
 
-
-setTxHash('')
-
+    // Blockchain payment
     if (wallet) {
       try {
-        const usdcAbi = ['function transfer(address to, uint256 amount) returns (bool)']
-        const usdc = new ethers.Contract(USDC_ADDRESS, usdcAbi, wallet.signer)
+        setTxStatus('Waiting for MetaMask approval...')
+        const usdc = new ethers.Contract(USDC_ADDRESS, USDC_ABI, wallet.signer)
         const amount = ethers.parseUnits(selectedAgent.pricePerJob.toString(), 6)
         const tx = await usdc.transfer(JOB_ESCROW_ADDRESS, amount)
         setTxHash(tx.hash)
+        setTxStatus('Transaction submitted, waiting for confirmation...')
         await tx.wait()
+        setTxStatus('Payment confirmed on Arc Network!')
       } catch (e) {
         console.log('TX error:', e.message)
+        setTxStatus('Payment failed: ' + e.message)
       }
     }
 
-    try {
-      const res = await fetch...
+    // AI Agent work
     try {
       const res = await fetch(`${BACKEND_URL}/api/agents/${selectedAgent.id}/run`, {
         method: 'POST',
@@ -137,7 +179,7 @@ setTxHash('')
         result: data.result,
         status: 'Completed',
         payment: selectedAgent.pricePerJob,
-        txHash: txHash,
+        txHash,
         createdAt: new Date().toLocaleString()
       }])
     } catch (e) {
@@ -300,11 +342,17 @@ setTxHash('')
 
             <button onClick={runAgent} disabled={loading || !task.trim()}
               style={{ width: '100%', marginTop: '12px', background: loading || !task.trim() ? '#21262d' : '#238636', color: loading || !task.trim() ? '#6e7681' : '#fff', border: 'none', padding: '14px', borderRadius: '10px', fontSize: '15px', fontWeight: '700', cursor: loading || !task.trim() ? 'not-allowed' : 'pointer' }}>
-              {loading ? '⏳ Processing on Arc Network...' : wallet ? `🚀 Pay $${selectedAgent.pricePerJob} USDC & Hire Agent` : `🚀 Hire Agent · $${selectedAgent.pricePerJob} USDC`}
+              {loading ? '⏳ Processing...' : wallet ? `🚀 Pay $${selectedAgent.pricePerJob} USDC & Hire Agent` : `🚀 Hire Agent · $${selectedAgent.pricePerJob} USDC`}
             </button>
 
+            {txStatus && (
+              <div style={{ marginTop: '12px', background: '#0d1f35', border: '1px solid #1e3a5f', borderRadius: '10px', padding: '12px 16px', fontSize: '13px', color: '#60a5fa' }}>
+                ⏳ {txStatus}
+              </div>
+            )}
+
             {txHash && (
-              <div style={{ marginTop: '12px', background: '#0d1f35', border: '1px solid #1e3a5f', borderRadius: '10px', padding: '12px 16px', fontSize: '13px' }}>
+              <div style={{ marginTop: '8px', background: '#0d1f35', border: '1px solid #1e3a5f', borderRadius: '10px', padding: '12px 16px', fontSize: '13px' }}>
                 <span style={{ color: '#60a5fa' }}>🔗 TX: </span>
                 <a href={`https://testnet.arcscan.app/tx/${txHash}`} target="_blank" style={{ color: '#60a5fa', textDecoration: 'none' }}>
                   {txHash.slice(0, 20)}...{txHash.slice(-8)}
@@ -563,7 +611,6 @@ setTxHash('')
           )}
         </div>
       )}
-
     </div>
   )
 }
