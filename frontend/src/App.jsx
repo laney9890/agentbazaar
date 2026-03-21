@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { ethers } from 'ethers'
 
 const BACKEND_URL = 'https://agentbazaar-production-6aa7.up.railway.app'
-const USDC_ADDRESS = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238'
+const USDC_ADDRESS = '0x3600000000000000000000000000000000000000'
 const JOB_ESCROW_ADDRESS = '0x15A5C5bA687C2B216944DaCF60Bd6609987AE399'
 
 const ARC_TESTNET = {
