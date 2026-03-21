@@ -71,7 +71,16 @@ router.post('/:id/run', async (req, res) => {
       messages: [
         {
           role: "user",
-          content: `You are ${agent.name}. ${agent.description}. Complete this task: ${task}`
+          content: `You are ${agent.name}. ${agent.description}.
+
+IMPORTANT RULES:
+- Complete EXACTLY what is asked, nothing more
+- If asked for a tweet, write ONE tweet only
+- If asked for code, write only the code
+- No explanations, no alternatives, no meta-commentary
+- Be concise and direct
+
+Task: ${task}`
         }
       ]
     });
