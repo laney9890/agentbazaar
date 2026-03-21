@@ -134,12 +134,15 @@ function AppInner() {
     if (wallet) {
       try {
         setTxStatus('Waiting for MetaMask approval...')
+        const escrowAbi = ['function createJob(uint256 _agentId, string memory _title, string memory _description) external payable returns (uint256)']
+        const escrow = new ethers.Contract(JOB_ESCROW_ADDRESS, escrowAbi, wallet.signer)
         const amount = ethers.parseUnits(selectedAgent.pricePerJob.toString(), 18)
-        const tx = await wallet.signer.sendTransaction({
-          to: JOB_ESCROW_ADDRESS,
-          value: amount,
-          gasLimit: 100000,
-        })
+        const tx = await escrow.createJob(
+          selectedAgent.id,
+          selectedAgent.name,
+          task,
+          { value: amount, gasLimit: 300000 }
+        )
         setTxHash(tx.hash)
         setTxStatus('Waiting for confirmation...')
         await tx.wait()
