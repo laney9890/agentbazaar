@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-ro
 
 const BACKEND_URL = 'https://agentbazaar-production-6aa7.up.railway.app'
 const USDC_ADDRESS = '0x3600000000000000000000000000000000000000'
-const JOB_ESCROW_ADDRESS = '0x4Fc516EDdE4c8C7cebE10B160eCbBB3660e04ab6'
+const JOB_ESCROW_ADDRESS = '0xC8019a5512B67A8B31Ce1a67BD2b3007Ec359D80'
 const AGENT_OWNER_ADDRESS = '0x337B77f8E094e963944BcFAf6B7427326fB29B83'
 
 const ARC_TESTNET = {
