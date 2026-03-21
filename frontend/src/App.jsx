@@ -54,7 +54,12 @@ export default function App() {
   const [result, setResult] = useState('')
   const [loading, setLoading] = useState(false)
   const [page, setPage] = useState('marketplace')
-  const [jobs, setJobs] = useState([])
+  const [jobs, setJobs] = useState(() => {
+  try {
+    const saved = localStorage.getItem('agentbazaar_jobs')
+    return saved ? JSON.parse(saved) : []
+  } catch { return [] }
+})
   const [filter, setFilter] = useState('All')
   const [docsSection, setDocsSection] = useState('how-it-works')
   const [wallet, setWallet] = useState(null)
@@ -190,17 +195,21 @@ const releasePayment = async (job) => {
       })
       const data = await res.json()
       setResult(data.result)
-      setJobs(prev => [...prev, {
-        id: prev.length + 1,
-        agentName: selectedAgent.name,
-        category: selectedAgent.category,
-        task,
-        result: data.result,
-        status: 'Completed',
-        payment: selectedAgent.pricePerJob,
-        txHash,
-        createdAt: new Date().toLocaleString()
-      }])
+      const newJob = {
+  id: jobs.length + 1,
+  agentName: selectedAgent.name,
+  category: selectedAgent.category,
+  task,
+  result: data.result,
+  status: 'Completed',
+  payment: selectedAgent.pricePerJob,
+  txHash,
+  createdAt: new Date().toLocaleString()
+}
+const updatedJobs = [...jobs, newJob]
+localStorage.setItem('agentbazaar_jobs', JSON.stringify(updatedJobs))
+setJobs(updatedJobs)
+      
     } catch (e) {
       setResult('Error: Could not connect to backend.')
     }
