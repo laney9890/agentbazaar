@@ -378,17 +378,38 @@ function Dashboard({ jobs, updateJob, wallet, connect }) {
   }
 
   const rejectJob = async (job) => {
-    if (!wallet) return alert('Connect your wallet first!')
-    try {
-      const escrow = new ethers.Contract(JOB_ESCROW_ADDRESS, ESCROW_ABI, wallet.signer)
-      const tx = await escrow.cancelJob(job.onChainJobId)
-      await tx.wait()
-      updateJob(job.id, { rejected: true, status: 'Rejected' })
-      alert('❌ Job rejected. Payment refunded.')
-    } catch (e) {
-      alert('Error: ' + e.message)
+  if (!wallet) return alert('Connect your wallet first!')
+  
+  try {
+    // Step 1: Ask Claude to evaluate
+    const evalRes = await fetch(`${BACKEND_URL}/api/dispute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task: job.task, result: job.result })
+    })
+    const evalData = await evalRes.json()
+    
+    if (evalData.decision === 'approve') {
+      // Claude says agent did good work
+      const confirmed = window.confirm(
+        `🤖 AI Evaluation: Agent did good work!\n\nReason: ${evalData.reason}\n\nDo you still want to reject and get a refund?`
+      )
+      if (!confirmed) return
+    } else {
+      // Claude says agent did poor work
+      window.alert(`🤖 AI Evaluation: Agent did not complete the task properly.\n\nReason: ${evalData.reason}\n\nYour refund will be processed.`)
     }
+
+    // Step 2: Cancel on blockchain
+    const escrow = new ethers.Contract(JOB_ESCROW_ADDRESS, ESCROW_ABI, wallet.signer)
+    const tx = await escrow.cancelJob(job.onChainJobId)
+    await tx.wait()
+    updateJob(job.id, { rejected: true, status: 'Rejected' })
+    alert('❌ Job rejected. Payment refunded.')
+  } catch (e) {
+    alert('Error: ' + e.message)
   }
+}
 
   return (
     <div style={{ maxWidth: '960px', margin: '0 auto', padding: '60px 24px' }}>
