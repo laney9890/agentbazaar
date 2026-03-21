@@ -149,7 +149,7 @@ export default function App() {
     if (wallet) {
       try {
         setTxStatus('Waiting for MetaMask approval...')
-        const amount = ethers.parseUnits(selectedAgent.pricePerJob.toString(), 6)
+        const amount = ethers.parseUnits(selectedAgent.pricePerJob.toString(), 18)
         const tx = await wallet.signer.sendTransaction({
           to: JOB_ESCROW_ADDRESS,
           value: amount,
