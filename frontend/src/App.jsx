@@ -390,11 +390,13 @@ function Dashboard({ jobs, updateJob, wallet, connect }) {
     const evalData = await evalRes.json()
     
     if (evalData.decision === 'approve') {
-      // Claude says agent did good work
-      const confirmed = window.confirm(
-        `🤖 AI Evaluation: Agent did good work!\n\nReason: ${evalData.reason}\n\nDo you still want to reject and get a refund?`
-      )
-      if (!confirmed) return
+  alert(`🤖 AI Evaluation: Agent completed the task properly.\n\nReason: ${evalData.reason}\n\nPayment will be released to the agent.`)
+  const escrow = new ethers.Contract(JOB_ESCROW_ADDRESS, ESCROW_ABI, wallet.signer)
+  const tx = await escrow.completeJob(job.onChainJobId, job.resultHash, AGENT_OWNER_ADDRESS)
+  await tx.wait()
+  updateJob(job.id, { released: true, status: 'Approved' })
+  return
+}
     } else {
       // Claude says agent did poor work
       window.alert(`🤖 AI Evaluation: Agent did not complete the task properly.\n\nReason: ${evalData.reason}\n\nYour refund will be processed.`)
