@@ -3,8 +3,16 @@ import { ethers } from 'ethers'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 
 const BACKEND_URL = 'https://agentbazaar-production-6aa7.up.railway.app'
-const JOB_ESCROW_ADDRESS = '0xC8019a5512B67A8B31Ce1a67BD2b3007Ec359D80'
-const AGENT_OWNER_ADDRESS = '0x337B77f8E094e963944BcFAf6B7427326fB29B83'
+const STREAM_PAYMENT_ADDRESS = '0x4d7Bb6AB9A6Ac161300eE29124ff5F474058c4eE'
+
+const STREAM_ABI = [
+  'function createStream(address _agent, uint256 _durationSeconds) external payable returns (uint256)',
+  'function settleStream(uint256 _streamId) external',
+  'function cancelStream(uint256 _streamId) external',
+  'function getEarned(uint256 _streamId) external view returns (uint256)',
+  'function getStream(uint256 _streamId) external view returns (tuple(uint256 id, address client, address agent, uint256 totalAmount, uint256 amountPerSecond, uint256 startTime, uint256 endTime, bool active, bool settled))',
+  'function streamCount() view returns (uint256)',
+]
 
 const ARC_TESTNET = {
   chainId: '0x4cef52',
@@ -355,7 +363,48 @@ function AgentPage({ agents, wallet, connect, addJob }) {
 
 function Dashboard({ jobs, updateJob, wallet, connect }) {
   const navigate = useNavigate()
+  const [streaming, setStreaming] = useState(false)
+const [streamId, setStreamId] = useState(null)
+const [earned, setEarned] = useState(0)
 
+const startStream = async (job) => {
+  if (!wallet) return alert('Connect your wallet first!')
+  try {
+    const stream = new ethers.Contract(STREAM_PAYMENT_ADDRESS, STREAM_ABI, wallet.signer)
+    const amount = ethers.parseUnits(job.payment.toString(), 18)
+    const duration = 60 // 60 saniye stream
+    const tx = await stream.createStream(AGENT_OWNER_ADDRESS, duration, { value: amount, gasLimit: 300000 })
+    await tx.wait()
+    const id = Number(await stream.streamCount())
+    setStreamId(id)
+    setStreaming(true)
+    // Her saniye kazanılanı güncelle
+    const interval = setInterval(async () => {
+      const e = await stream.getEarned(id)
+      setEarned(Number(ethers.formatUnits(e, 18)).toFixed(4))
+    }, 1000)
+    setTimeout(() => {
+      clearInterval(interval)
+      setStreaming(false)
+    }, 65000)
+    updateJob(job.id, { streamId: id, status: 'Streaming' })
+  } catch (e) {
+    alert('Error: ' + e.message)
+  }
+}
+
+const settleStream = async (job) => {
+  if (!wallet) return alert('Connect your wallet first!')
+  try {
+    const stream = new ethers.Contract(STREAM_PAYMENT_ADDRESS, STREAM_ABI, wallet.signer)
+    const tx = await stream.settleStream(job.streamId)
+    await tx.wait()
+    updateJob(job.id, { status: 'Settled' })
+    alert('✅ Stream settled! Agent paid.')
+  } catch (e) {
+    alert('Error: ' + e.message)
+  }
+}
   const approveJob = async (job) => {
     if (!wallet) return alert('Connect your wallet first!')
     try {
@@ -457,7 +506,31 @@ function Dashboard({ jobs, updateJob, wallet, connect }) {
                     🔗 View payment on Arc Explorer
                   </a>
                 )}
+                {!job.released && !job.rejected && !job.streamId && wallet && (
+  <div style={{ marginTop: '12px' }}>
+    <button onClick={() => startStream(job)}
+      style={{ background: '#1f6feb', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', width: '100%' }}>
+      ⚡ Pay with Nanopayments (Stream)
+    </button>
+  </div>
+)}
 
+{job.streamId && job.status === 'Streaming' && (
+  <div style={{ marginTop: '12px', background: '#0d1f35', border: '1px solid #1e3a5f', borderRadius: '10px', padding: '14px' }}>
+    <div style={{ color: '#60a5fa', fontSize: '13px', marginBottom: '8px' }}>⚡ Stream aktif — Her saniye ödeme akıyor</div>
+    <div style={{ color: '#4ade80', fontSize: '20px', fontWeight: '700', marginBottom: '10px' }}>${earned} USDC kazanıldı</div>
+    <button onClick={() => settleStream(job)}
+      style={{ background: '#238636', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
+      ✅ Settle Stream
+    </button>
+  </div>
+)}
+
+{job.streamId && job.status === 'Settled' && (
+  <div style={{ marginTop: '8px', background: '#0d2e1a', border: '1px solid #166534', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#4ade80' }}>
+    ✅ Nanopayment stream tamamlandı
+  </div>
+)}
                 {!job.released && !job.rejected && job.onChainJobId && wallet && (
                   <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                     <button onClick={() => approveJob(job)}

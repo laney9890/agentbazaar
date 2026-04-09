@@ -9,7 +9,7 @@ app.use(express.json());
 // Routes
 app.use('/api/agents', require('./agents'));
 app.use('/api/jobs', require('./jobs'));
-app.use('/api/dispute', require('./dispute'));
+app.use('/api/circle', require('./circle'));
 
 app.get('/', (req, res) => {
   res.json({ message: 'AgentBazaar API is running!' });
