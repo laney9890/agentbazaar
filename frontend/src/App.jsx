@@ -3,6 +3,7 @@ import { ethers } from 'ethers'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 
 const BACKEND_URL = 'https://agentbazaar-production-6aa7.up.railway.app'
+const JOB_ESCROW_ADDRESS = '0xC8019a5512B67A8B31Ce1a67BD2b3007Ec359D80'
 const STREAM_PAYMENT_ADDRESS = '0x4d7Bb6AB9A6Ac161300eE29124ff5F474058c4eE'
 
 const STREAM_ABI = [
