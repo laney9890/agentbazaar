@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { ethers } from 'ethers'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 
-const BACKEND_URL = 'https://agentbazaar-production-6aa7.up.railway.app'
+const BACKEND_URL = 'https://agentbazaar-production-18d5.up.railway.app'
 const JOB_ESCROW_ADDRESS = '0xC8019a5512B67A8B31Ce1a67BD2b3007Ec359D80'
 const AGENT_OWNER_ADDRESS = '0x337B77f8E094e963944BcFAf6B7427326fB29B83'
 const STREAM_PAYMENT_ADDRESS = '0x4d7Bb6AB9A6Ac161300eE29124ff5F474058c4eE'
